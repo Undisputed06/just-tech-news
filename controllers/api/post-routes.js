@@ -1,9 +1,10 @@
 const router = require('express').Router();
-const { Post, User, Vote } = require('../../models');
-const sequelize = require('../../config/connection')
+const sequelize = require('../../config/connection');
+const { Post, User, Comment, Vote } = require('../../models');
 
 // get all users
 router.get('/', (req, res) => {
+  console.log('======================');
   Post.findAll({
     attributes: [
       'id',
@@ -14,6 +15,14 @@ router.get('/', (req, res) => {
     ],
     order: [['created_at', 'DESC']],
     include: [
+      {
+        model: Comment,
+        attributes: ['id', 'comment_text', 'post_id', 'user_id', 'created_at'],
+        include: {
+          model: User,
+          attributes: ['username']
+        }
+      },
       {
         model: User,
         attributes: ['username']
@@ -41,6 +50,14 @@ router.get('/:id', (req, res) => {
     ],
     include: [
       {
+        model: Comment,
+        attributes: ['id', 'comment_text', 'post_id', 'user_id', 'created_at'],
+        include: {
+          model: User,
+          attributes: ['username']
+        }
+      },
+      {
         model: User,
         attributes: ['username']
       }
@@ -59,7 +76,6 @@ router.get('/:id', (req, res) => {
     });
 });
 
-
 router.post('/', (req, res) => {
   // expects {title: 'Taskmaster goes public!', post_url: 'https://taskmaster.com/press', user_id: 1}
   Post.create({
@@ -72,19 +88,17 @@ router.post('/', (req, res) => {
       console.log(err);
       res.status(500).json(err);
     });
-  })
+});
 
-  router.put('/upvote', (req, res) => {
-    // custom static method created in models/Post.js
-    Post.upvote(req.body, { Vote })
-      .then(updatedPostData => res.json(updatedPostData))
-      .catch(err => {
-        console.log(err);
-        res.status(400).json(err);
-      });
-  });
-  
-
+router.put('/upvote', (req, res) => {
+  // custom static method created in models/Post.js
+  Post.upvote(req.body, { Vote, Comment, User })
+    .then(updatedVoteData => res.json(updatedVoteData))
+    .catch(err => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
 
 router.put('/:id', (req, res) => {
   Post.update(
